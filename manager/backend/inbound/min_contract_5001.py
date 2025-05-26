@@ -187,7 +187,8 @@ def get_contract_status_by_id(contract_id):
                 m.pallet_num,
                 m.weight,
                 m.barcode,
-                m.barcode_num
+                m.barcode_num,
+                m.total_cost
             FROM MainTable m
             LEFT JOIN ContractForms cf ON m.id = cf.contract_id
             WHERE m.id = %s

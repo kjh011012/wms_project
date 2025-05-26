@@ -141,7 +141,8 @@ def update_inbound_status(item_id):
         allowed_columns = [
             "pallet_size", "pallet_num", "weight", "warehouse_type", "total_cost",
             "company_name", "product_name", "inbound_quantity", "product_number",
-            "warehouse_location", "subscription_inbound_date", "outbound_date"
+            "warehouse_location", "subscription_inbound_date", "outbound_date", "storage_duration",
+            "estimate"
         ]
 
         # 데이터프레임에서 해당 id의 행 확인
@@ -158,15 +159,12 @@ def update_inbound_status(item_id):
                 data_df.loc[data_df["id"] == item_id, key] = value
                 current_data[key] = value  # 기존 데이터에 업데이트된 값 반영
 
-        # 견적서 생성
-        estimate = create_estimate_text(current_data)
-        data_df.loc[data_df["id"] == item_id, "estimate"] = estimate
-
         # SQL 업데이트 준비
         update_fields = [f"{key} = %s" for key in allowed_columns if key in current_data]
         update_values = [current_data[key] for key in allowed_columns if key in current_data]
-        update_fields.append("estimate = %s")
-        update_values.append(estimate)
+        if 'estimate' in update_data:
+            update_fields.append("estimate = %s")
+            update_values.append(update_data['estimate'])
 
         # SQL 실행
         connection = mysql.connector.connect(**DB_CONFIG)
@@ -190,69 +188,6 @@ def update_inbound_status(item_id):
     except Exception as e:
         print("Error updating inbound status:", str(e))
         return jsonify({"error": f"Failed to update inbound status: {str(e)}"}), 500
-
-#아래는 견적서
-
-def format_date(date_str):
-    """
-    날짜를 사람이 읽기 좋은 형식으로 변환 (예: 2024-12-01 -> 2024년 12월 01일)
-    """
-    try:
-        return datetime.strptime(date_str, "%Y-%m-%d").strftime("%Y년 %m월 %d일")
-    except (ValueError, TypeError):
-        return "N/A"
-
-def create_estimate_text(row_data):
-    """
-    견적서 내용을 생성하는 함수, 보관 기간 계산 포함
-    """
-    # 날짜 파싱 및 보관 기간 계산
-    try:
-        inbound_date = datetime.strptime(row_data.get("subscription_inbound_date", ""), "%Y-%m-%d")
-        outbound_date = datetime.strptime(row_data.get("outbound_date", ""), "%Y-%m-%d")
-        storage_duration = max((outbound_date - inbound_date).days, 0)
-    except (ValueError, TypeError):
-        storage_duration = "N/A"
-
-    # 견적서 템플릿
-    template = (
-        "===========================================\n"
-        f"                  견적서\n"
-        "===========================================\n"
-        f"발행일      : {datetime.now().strftime('%Y년 %m월 %d일')}\n"
-        "-------------------------------------------\n"
-        f"수신 회사명 : {row_data.get('company_name', 'N/A')}\n"
-        "\n"
-        "1. 제품 정보\n"
-        f"   상품명       : {row_data.get('product_name', 'N/A')}\n"
-        f"   입고 수량    : {row_data.get('inbound_quantity', 'N/A')} 개\n"
-        f"   무게         : {row_data.get('weight', 'N/A')} kg\n"
-        f"   제품 번호    : {row_data.get('product_number', 'N/A')}\n"
-        "\n"
-        "2. 창고 정보\n"
-        f"   창고 위치    : {row_data.get('warehouse_location', 'N/A')}\n"
-        f"   창고 타입    : {row_data.get('warehouse_type', 'N/A')}\n"
-        f"   입고 날짜    : {format_date(row_data.get('subscription_inbound_date'))}\n"
-        f"   출고 날짜    : {format_date(row_data.get('outbound_date'))}\n"
-        f"   보관 기간    : {storage_duration} 일\n"
-        "\n"
-        "3. 팔레트 정보\n"
-        f"   팔레트 크기  : {row_data.get('pallet_size', 'N/A')}\n"
-        f"   팔레트 개수  : {row_data.get('pallet_num', 'N/A')} 개\n"
-        "\n"
-        "4. 비용 정보\n"
-        f"   총 비용       : {row_data.get('total_cost', 'N/A')} 원\n"
-        "===========================================\n"
-        "   본 견적서는 발행일로부터 30일간 유효합니다.\n"
-        "===========================================\n"
-    )
-    return template
-
-
-
-
-
-
 
 @app.route("/refresh-inbound-status", methods=["POST"])
 def refresh_inbound_status():
@@ -334,7 +269,14 @@ def get_slots(location_id):
     print(f"➡️ 매핑된 warehouse_location 이름: {location_name}")
 
     # 슬롯 이름 리스트
-    slot_names = [f'SLOT-{i+1}' for i in range(9)]
+    slot_names = []
+    for i in range(45):
+        x = i % 3
+        y = (i // 3) % 3
+        z = i // (3 * 3)
+        slot_name = f"SLOT-{x}-{y}-{z}"
+        slot_names.append(slot_name)
+    print(slot_names)
 
     # 해당 보관소 + 슬롯에 배정된 물품 필터링
     filtered = data_df[
@@ -345,18 +287,26 @@ def get_slots(location_id):
     # 슬롯 결과 초기화
     slots = []
 
-    for i in range(9):
-        slot_name = f'SLOT-{i+1}'
+    for i in range(45):
+        x = i % 3
+        y = (i // 3) % 3
+        z = i // (3 * 3)
+        slot_name = f"SLOT-{x}-{y}-{z}"
         row = filtered[filtered['warehouse_num'] == slot_name]
+        print(filtered[['warehouse_num']])
         if not row.empty:
             item = row.iloc[0]
             slots.append({
                 "available": False,
                 "company_name": item['company_name'],
-                "product_name": item['product_name']
+                "product_name": item['product_name'],
+                "slot_name": slot_name
             })
         else:
-            slots.append({ "available": True })
+            slots.append({ 
+                "available": True,
+                "slot_name": slot_name   # 👈 빈 슬롯도 포함!
+            })
 
     return jsonify(slots)
 

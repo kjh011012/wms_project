@@ -16,7 +16,6 @@ CORS(app, resources={
             "http://34.64.211.3:4000",
             "http://34.64.211.3:4001",
             "http://34.64.211.3:4002",  
-            "http://34.64.211.3:5003"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],
@@ -65,9 +64,9 @@ def get_storage_items():
         # 모든 상태의 물품 데이터를 가져오는 쿼리 (실제 컬럼명으로 수정)
         items_query = """
             SELECT 
-                m.id,
-                m.company_name, m.product_name, m.product_number,
-                m.category, m.warehouse_location, m.warehouse_type,
+                m.id, u.contact_person, u.contact_phone, u.address, u.email,
+                m.company_name, m.product_name, m.product_number, m.img_inbound, m.img_pallet,
+                m.category, m.warehouse_location, m.warehouse_type, m.pallet_size, m.pallet_num,
                 m.width_size, m.length_size, m.height_size, m.weight, m.inbound_quantity, 
                 m.inbound_status, m.outbound_status, m.subscription_inbound_date, m.outbound_date,
                 m.storage_duration, m.total_cost, m.contract_date, m.estimate, m.last_outbound_date,

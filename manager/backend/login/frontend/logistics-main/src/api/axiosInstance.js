@@ -38,14 +38,30 @@ API.interceptors.response.use(
             // 재발급 후 원래 요청 재시도
             return API(originalRequest);
         } catch (refreshErr) {
-            console.warn("accessToken 재발급 실패");
+          console.warn("accessToken 재발급 실패");
+        
+          try {
+            // 서버에 logout 요청
+            await API.post("/logout");
+        
+            // 쿠키 클리어 (서버에서 Set-Cookie: expired로 보내주겠지)
+          } catch (logoutErr) {
+            console.error("서버에 logout 요청 실패:", logoutErr);
+          } finally {
+            // 로컬스토리지도 정리할 거면 여기서
+            localStorage.removeItem("email");
+            localStorage.removeItem("role");
+            localStorage.removeItem("token");
+        
             alert("로그인 세션이 만료되었습니다. 다시 로그인해주세요.");
-            window.location.href = "http://34.64.211.3:3000/"; // 재발급 실패 → 로그인 페이지로
-            return Promise.reject(refreshErr);
+        
+            // 이동
+            window.location.href = "http://34.64.211.3:3000/";
+          }
+        
+          return Promise.reject(refreshErr);
         }
-        finally {
-        isRefreshing = false;
-      }
+        
       }
 
       return Promise.reject(error);

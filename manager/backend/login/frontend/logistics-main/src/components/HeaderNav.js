@@ -47,7 +47,7 @@ const HeaderNav = () => {
                 )}
                 {isLoggedIn && role === "user" && (
                     <>
-                        <button onClick={() => window.location.href = "http://34.64.211.3:4000/user/CustomerMainPage"}>VMS</button>
+                        <button onClick={() => window.location.href = "http://34.64.211.3:4000/user/CustomerMainPage"}>WMS</button>
                         <button onClick={() => navigate("/about")}>제품 설명</button>
                         <button onClick={() => navigate("/contact")}>Contact</button>
                         <button onClick={() => navigate("/mypage")}>마이페이지</button>
@@ -56,7 +56,7 @@ const HeaderNav = () => {
                 )}
                 {isLoggedIn && role === "admin" && (
                     <>
-                        <button onClick={() => window.location.href = "http://34.64.211.3:3050/admin/Mainpage"}>VMS</button>
+                        <button onClick={() => window.location.href = "http://34.64.211.3:3050/admin/Mainpage"}>WMS</button>
                         <button onClick={() => navigate("/about")}>제품 설명</button>
                         <button onClick={() => navigate("/mypage")}>마이페이지</button>
                         <button onClick={() => navigate("/admin")}>관리자 페이지</button>

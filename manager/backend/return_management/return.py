@@ -117,8 +117,8 @@ def get_completed_backups():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # 출고완료 상태인 BackupTable 데이터 조회
-        cursor.execute("SELECT id, product_name, company_name FROM BackupTable WHERE outbound_status = '출고완료'")
+        # 출고완료 상태인 OutboundRequestTable 데이터 조회
+        cursor.execute("SELECT id, product_name, company_name FROM OutboundRequestTable WHERE outbound_status = '출고완료'")
         data = cursor.fetchall()
 
         cursor.close()
@@ -136,7 +136,7 @@ def get_backup_detail(backup_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT * FROM BackupTable WHERE id = %s", (backup_id,))
+        cursor.execute("SELECT * FROM OutboundRequestTable WHERE id = %s", (backup_id,))
         data = cursor.fetchone()
         cursor.close()
         conn.close()

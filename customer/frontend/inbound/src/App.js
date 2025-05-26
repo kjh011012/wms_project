@@ -6,11 +6,10 @@ import Cin_estimate_main from "./pages/Cin_estimate_main";
 import Cin_contract_state_main from "./pages/Cin_contract_state_main";
 import Cin_state from "./pages/Cin_state";
 
-
+import ChatbotWrapper from "./pages/ChatbotWrapper";
 
 const App = () => {
   return (
-
       <Base>
         <Routes>
           {/* 입고 현황 페이지 */}
@@ -18,6 +17,7 @@ const App = () => {
           <Route path="/user/CustomerContract" element={<Cin_contract_state_main />} />
           <Route path="/user/CustomerInbound" element={<Cin_state />} />
         </Routes>
+        {<ChatbotWrapper />}
       </Base>
   
   );

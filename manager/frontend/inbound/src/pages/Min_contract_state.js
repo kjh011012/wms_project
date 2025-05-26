@@ -330,7 +330,7 @@ const styles = {
     color: "#fff",
   },
   tableContainer: {
-    height: "500px",
+    height: "520px",
     width: "100%",
   },
   agGridHeader: {

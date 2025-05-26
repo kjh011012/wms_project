@@ -19,6 +19,9 @@ function CustomerContract() {
   const [waitingContracts, setWaitingContracts] = useState([]);
   const [approvedContracts, setApprovedContracts] = useState([]);
 
+  const [searchText, setSearchText] = useState("");
+  const [sortType, setSortType] = useState("latest");
+
   // 데이터 가져오기 함수
   const fetchData = async () => {
     setLoading(true);
@@ -79,84 +82,124 @@ function CustomerContract() {
     setIsModalOpen(true);
   };
 
-  const handleContractUpdate = () => {
-    fetchData(); // 데이터 재조회
+  const handleContractUpdate = async () => {
+    await fetchData(); 
+    if (selectedRow) {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/contracts/${selectedRow.id}`);
+        setSelectedRow(response.data);
+      } catch (error) {
+        console.error("Error fetching updated selectedRow:", error);
+      }
+    }
   };
-
   const [activeTab, setActiveTab] = useState('waiting');
+
+  const getFilteredAndSortedContracts = (contracts) => {
+    let filtered = [...contracts];
+  
+    if (searchText.trim() !== "") {
+      filtered = filtered.filter(item =>
+        (item.product_name?.toLowerCase().includes(searchText.toLowerCase())) ||
+        (item.company_name?.toLowerCase().includes(searchText.toLowerCase()))
+      );
+    }
+  
+    if (sortType === "latest") {
+      filtered.sort((a, b) => new Date(b.id || 0) - new Date(a.id || 0));
+    } else if (sortType === "oldest") {
+      filtered.sort((a, b) => new Date(a.id || 0) - new Date(b.id || 0));
+    } else if (sortType === "company") {
+      filtered.sort((a, b) => a.company_name.localeCompare(b.company_name));
+    }
+  
+    return filtered;
+  };
 
   
   return (
     <div style={styles.container}>
       <div style={styles.content}>
       <h2 style={styles.sectionTitle}>계약 현황</h2>
-        {/* 🔼 탭 버튼 영역 */}
-        <div style={styles.tabContainer}>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'waiting' ? styles.tabButtonActive : {}),
-            }}
-            onClick={() => setActiveTab('waiting')}
-          >
-            계약 대기
-          </button>
-          <button
-            style={{
-              ...styles.tabButton,
-              ...(activeTab === 'approved' ? styles.tabButtonActive : {}),
-            }}
-            onClick={() => setActiveTab('approved')}
-          >
-            계약 승인
-          </button>
-        </div>
-
-        {/* 🔽 테이블 영역 */}
-        {activeTab === 'waiting' && (
-          <div style={styles.halfBox}>
-            <div className="ag-theme-alpine" style={styles.tableContainer}>
-              <AgGridReact
-                rowData={waitingContracts}
-                columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                onRowClicked={onRowClicked}
-                pagination={true}
-                paginationPageSize={12}
-                onGridReady={(params) => {
-                  params.api.sizeColumnsToFit(); // 👈 화면 너비에 맞게 자동 조절
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'approved' && (
-          <div style={styles.halfBox}>
-            <div className="ag-theme-alpine" style={styles.tableContainer}>
-              <AgGridReact
-                rowData={approvedContracts}
-                columnDefs={columnDefs}
-                defaultColDef={defaultColDef}
-                onRowClicked={onRowClicked}
-                pagination={true}
-                paginationPageSize={12}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* 공통 모달 */}
-        {selectedRow && (
-          <Cin_contract_state 
-            contract={selectedRow}
-            isOpen={isModalOpen}
-            onClose={() => setIsModalOpen(false)}
-            onContractUpdate={handleContractUpdate}
-          />
-        )}
+      <div style={styles.searchFilterContainer}>
+        <input
+          type="text"
+          placeholder="상품명, 회사명 검색"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={styles.filterInput}
+        />
+        <select
+          value={sortType}
+          onChange={(e) => setSortType(e.target.value)}
+          style={styles.sortSelect}
+        >
+          <option value="latest">최근 등록순</option>
+          <option value="oldest">과거 등록순</option>
+          <option value="company">회사명순</option>
+        </select>
       </div>
+      {/* 🔼 탭 버튼 영역 */}
+      <div style={styles.tabContainer}>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'waiting' ? styles.tabButtonActive : {}),
+          }}
+          onClick={() => setActiveTab('waiting')}
+        >
+          계약 대기
+        </button>
+        <button
+          style={{
+            ...styles.tabButton,
+            ...(activeTab === 'approved' ? styles.tabButtonActive : {}),
+          }}
+          onClick={() => setActiveTab('approved')}
+        >
+          계약 승인
+        </button>
+      </div>
+      {/* 🔽 테이블 영역 */}
+      {activeTab === 'waiting' && (
+        <div style={styles.halfBox}>
+          <div className="ag-theme-alpine" style={styles.tableContainer}>
+          <AgGridReact
+            rowData={getFilteredAndSortedContracts(waitingContracts)}
+            columnDefs={columnDefs}
+            defaultColDef={defaultColDef}
+            onRowClicked={onRowClicked}
+            pagination={true}
+            paginationPageSize={10}
+          />
+          </div>
+        </div>
+      )}
+      {activeTab === 'approved' && (
+        <div style={styles.halfBox}>
+          <div className="ag-theme-alpine" style={styles.tableContainer}>
+            <AgGridReact
+              rowData={getFilteredAndSortedContracts(approvedContracts)}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              onRowClicked={onRowClicked}
+              pagination={true}
+              paginationPageSize={10}
+            />
+          </div>
+        </div>
+      )}
+      {/* 공통 모달 */}
+      {selectedRow && (
+        <Cin_contract_state 
+          contract={selectedRow}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onContractUpdate={handleContractUpdate}
+        />
+      )}
     </div>
+  </div>
 
   );
 }
@@ -201,7 +244,7 @@ const styles = {
     fontSize: "14px",
   },
   tableContainer: {
-    height: "500px",
+    height: "520px",
     width: "100%",
   },
   agGridHeader: {
@@ -272,4 +315,32 @@ const styles = {
     borderBottom: "3px solid #6f47c5",
     color: "#6f47c5",
   },
+  searchFilterContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "10px",
+    gap: "10px",
+  },
+  filterInput: {
+    flex: 1,
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    outline: "none",
+    marginRight: "5px",
+    transition: "border-color 0.3s ease",
+  },
+  sortSelect: {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background 0.3s ease",
+  },
+  
 };

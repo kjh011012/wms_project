@@ -17,6 +17,10 @@ const Mout_state = () => {
   const [showModal, setShowModal] = useState(false);
   const [vehicleList, setVehicleList] = useState([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [videoActionType, setVideoActionType] = useState(""); // "start" or "complete"
+  const [videoSrc, setVideoSrc] = useState("");
+
 
   const handleOutsideClick = (event) => {
     if (detailRef.current && !detailRef.current.contains(event.target)) {
@@ -197,7 +201,36 @@ const Mout_state = () => {
       console.error("배차 처리 실패:", error);
       alert("배차 요청에 실패했습니다.");
     }
-  };  
+  }; 
+  
+  const handleVideoEnd = async () => {
+    setShowVideoModal(false);
+  
+    try {
+      const response = await fetch(`${API_BASE_URL}/video-end`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          main_table_id: selectedRowData.id,
+          video_type: videoActionType,  // "start" or "complete"
+        }),
+      });
+  
+      if (response.ok) {
+        const data = await response.json();
+        alert(data.message); // 예: "출고 상태가 '출고 준비 완료'로 변경되었습니다."
+        fetchTableData();
+        setSelectedRowData(null);
+      } else {
+        const errorData = await response.json();
+        alert(`상태 변경 실패: ${errorData.error || "알 수 없는 오류"}`);
+      }
+    } catch (error) {
+      console.error("상태 변경 오류:", error);
+      alert("상태 변경 중 오류가 발생했습니다.");
+    }
+  };
+  
 
   const [activeTab, setActiveTab] = useState('출고요청');
   const statusTabs = ['출고요청', '출고 준비중', '출고 준비 완료', '배차 완료', '출고완료'];
@@ -299,12 +332,19 @@ const Mout_state = () => {
                   }}
                 >
                 {selectedRowData.outbound_status === "출고요청" && (
-                  <button className="prep-button" onClick={handleStartPreparation}>
+                  <button
+                    className="prep-button"
+                    onClick={handleStartPreparation}
+                  >
                     출고 준비 시작
                   </button>
                 )}
+
                 {selectedRowData.outbound_status === "출고 준비중" && (
-                  <button className="prep-button" onClick={handleCompletePreparation}>
+                  <button
+                    className="prep-button"
+                    onClick={handleCompletePreparation}
+                  >
                     출고 준비 완료
                   </button>
                 )}
@@ -380,7 +420,9 @@ const Mout_state = () => {
                     >
                       배차 완료
                     </button>
+                    
                   </div>
+                  
                 </div>
               </div>
             </div>
@@ -394,4 +436,3 @@ const Mout_state = () => {
 
 
 export default Mout_state;
-

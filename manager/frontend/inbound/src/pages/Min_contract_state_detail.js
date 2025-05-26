@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Min_estimate_calculator from './Min_estimate_calculator';
 import { StorageMap } from './StorageMap'; // 가상의 StorageMap 컴포넌트
 
 function Min_contract_state_detail({ contract, isOpen, onClose }) {
+  const titleRef = useRef(null);
+  const contentRef = useRef(null);
+  const signatureRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [barcodeUrl, setBarcodeUrl] = useState('');
   const [contractForm, setContractForm] = useState({
@@ -48,7 +51,7 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
       setIsLoading(true);
       fetchContractForm(contract.id).finally(() => setIsLoading(false));
       setBarcodeUrl(`http://34.64.211.3:5001/barcode/${contract.id}.png`);
-      setSelectedRowData(contract);  // 여기에 복사해두면 estimate 접근도 바로 가능
+      console.log("계약데이터:", contract);
       setIsEditable(true);
       setIsSaveEnabled(true);
       }
@@ -140,33 +143,13 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
     padding: '30px',
     borderRadius: '12px',
     height: '80%',
-    width: '600px',
+    width: '90%', // 💡 기존 600px → 90% 로 확대
+    maxWidth: '600px', // 💡 가운데 정렬 유지 + 반응형 지원
     boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
     position: 'relative',
     textAlign: 'center',
   };
 
-  const formContainerStyle = {
-    padding: '20px'
-  };
-
-  const labelStyle = {
-    display: 'block',
-    marginBottom: '8px',
-    fontWeight: '500',
-    color: '#333'
-  };
-
-  const inputStyle = {
-    width: '100%',
-    height: 'auto',
-    padding: '10px',
-    marginBottom: '15px',
-    border: '1px solid #ddd',
-    borderRadius: '4px',
-    fontSize: '14px',
-    backgroundColor: '#f9f9f9'
-  };
 
   const buttonStyle = {
     padding: '10px 20px',
@@ -176,19 +159,6 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
     cursor: 'pointer',
     color: 'white',
     fontSize: '14px',
-  };
-
-  const fixedButtonContainer = {
-    position: 'sticky',
-    bottom: 0,
-    backgroundColor: 'white',
-    padding: '15px 0',
-    borderTop: '1px solid #eee',
-    marginTop: '20px',
-    display: 'flex',
-    gap: '10px',
-    width: '100%',
-    justifyContent: 'center'
   };
 
   const pageButtonStyle = {
@@ -220,7 +190,6 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
 
   
   const cid = contract?.contract_id || contract?.id;
-  
 
   return (
     <div style={modalStyle} onClick={handleClose}>
@@ -270,27 +239,54 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
         </div>
 
         {currentPage === 1 && (
+          <div style={{ maxWidth: '1300px', height: 'calc(100vh - 200px)', margin: '0 auto', overflow: 'auto' }}>
+          <h2 style={sectionTitleStyle}>실견적 계산하기</h2>
             <Min_estimate_calculator
             selectedRowData={selectedRowData}
             onUpdate={async (updated) => {
               try {
-                const response = await fetch(`http://34.64.211.3:5002/inbound-status/${contract?.id}`, {
+                const total = updated.total_cost ?? 0;  // ✅ 안전하게 총비용 가져오기
+                const estimateText = `
+                발행일: ${new Date().toLocaleDateString('ko-KR')}
+                회사명: ${updated.company_name}
+                상품명: ${updated.product_name}
+                입고수량: ${updated.inbound_quantity} 개
+                무게: ${updated.weight} kg
+                제품번호: ${updated.product_number}
+                창고위치: ${updated.warehouse_location}
+                창고타입: ${updated.warehouse_type}
+                입고일: ${updated.subscription_inbound_date}
+                출고일: ${updated.outbound_date}
+                보관기간: ${updated.storage_duration} 일
+                팔레트크기: ${updated.pallet_size}
+                팔레트개수: ${updated.pallet_num} 개
+                총비용: ${updated.total} 원
+                `;
+                const dataToSend = {
+                  ...updated,
+                  estimate: estimateText,
+                  total_cost: total,
+                };
+
+                await fetch(`http://34.64.211.3:5002/inbound-status/${contract.id}`, {
                   method: 'PUT',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify(updated),
-                });
-          
-                if (!response.ok) throw new Error('서버 저장 실패');
-          
-                const result = await response.json();
-                console.log("📦 저장 완료:", result);
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(dataToSend),
+                })
+
+                setSelectedRowData((prev) => ({
+                  ...prev,
+                  ...updated,
+                  total_cost: total,
+                }));
+
+                await fetchContractForm(contract.id);
           
                 // 저장 성공 시, 계약서 상태도 업데이트
                 setContractForm((prev) => ({
                   ...prev,
-                  ...updated
+                  ...updated,
+                  total_cost: total,
                 }));
           
                 alert("입고 정보 저장 성공!");
@@ -302,135 +298,168 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
             }}
             onClose={() => setCurrentPage(2)}
             />
-          )}
+          </div>
+        )}
 
         {currentPage === 2 && (
-          <div style={{ height: '600px', overflow: 'auto' }}>
+          <div style={{ maxWidth: '1200px', height: 'calc(100vh - 300px)', margin: '0 auto', overflow: 'hidden' }}>
             <StorageMap />
           </div>
         )}
 
         {currentPage === 3 && (
           <form onSubmit={handleFormSubmit}>
-            <h2 style={sectionTitleStyle}>계약서</h2>
-            <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', height: '400px', weight: '500px' }}>
-              {/* 왼쪽: 제목, 계약 내용, 서명 */}
-              <div style={{ flex: '1', display: 'flex', flexDirection: 'column' }}>
-                <div>
-                  <label style={{ ...labelStyle, textAlign: 'left', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>제목</label>
-                  <input
-                    type="text"
-                    value={contractForm.title}
-                    onChange={(e) => handleInputChange('title', e.target.value)}
-                    style={{...inputStyle, height: '25px', backgroundColor: '#f9f9f9'}}
-                    disabled={!isEditable}
-                  />
-                </div>
+          <div style={{ maxWidth: '1300px', height: 'calc(100vh - 200px)', margin: '0 auto', overflow: 'auto' }}>
+          <h2 style={sectionTitleStyle}>견적확인 및 계약서 작성</h2>
+          <div style={{ display: 'flex', gap: '40px', height: '550px', alignItems: 'flex-start', marginTop: '20px', justifyContent: 'center' }}>
+            {/* 오른쪽: 견적서 미리보기 */}
+            <div style={{ flex: 1, maxWidth: '300px', overflow: 'auto' }}>
+              <h4 style={{ color: '#6f47c5', fontWeight: 'bold', marginBottom: '10px' }}>견적서 정보</h4>
+              <table style={{  width: '100%', height: '70%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '8px' }}>
+                <tbody>
+                  {[ 
+                    ['발행일', new Date().toLocaleDateString('ko-KR')],
+                    ['회사명', selectedRowData?.company_name],
+                    ['상품명', selectedRowData?.product_name],
+                    ['입고수량', `${selectedRowData?.inbound_quantity} 개`],
+                    ['무게', `${selectedRowData?.weight} kg`],
+                    ['제품번호', selectedRowData?.product_number],
+                    ['창고위치', selectedRowData?.warehouse_location],
+                    ['창고타입', selectedRowData?.warehouse_type],
+                    ['입고일', selectedRowData?.subscription_inbound_date],
+                    ['출고일', selectedRowData?.outbound_date],
+                    ['보관기간', `${selectedRowData?.storage_duration} 일`],
+                    ['팔레트 크기', selectedRowData?.pallet_size],
+                    ['팔레트 수', `${selectedRowData?.pallet_num} 개`],
+                    ['총 비용', `${selectedRowData?.total_cost} 원`]
+                  ].map(([label, value], index) => (
+                    <tr key={index}>
+                      <td style={{ padding: '5px 10px', fontWeight: 'bold', fontSize: '13px', backgroundColor: '#f4f1fb', width: '40%', textAlign: 'left', color: '#5a3ea1', }}>{label}</td>
+                      <td style={{ padding: '5px 10px', textAlign: 'left', fontSize: '12px' }}>{value || 'N/A'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                <div>
-                  <label style={{ ...labelStyle, textAlign: 'left', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>계약 내용</label>
-                  <textarea
-                    value={contractForm.content}
-                    onChange={(e) => handleInputChange('content', e.target.value)}
-                    style={{...inputStyle, height: '250px', overflowY: 'auto', backgroundColor: '#f9f9f9'}}
-                    disabled={!isEditable}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ ...labelStyle, textAlign: 'left', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>서명</label>
+            {/* 왼쪽: 계약 정보 입력 */}
+            <div style={{ flex: 1, maxWidth: '300px', overflow: 'auto' }}>
+            <h4 style={{ color: '#6f47c5', fontWeight: 'bold', marginBottom: '10px' }}>계약서 작성</h4>
+            <table style={{...styles.table, height: '70%'}}>
+              <tbody>
+                <tr onClick={() => titleRef.current?.focus()} style={styles.clickableRow}>
+                  <td colSpan={2}>
                     <input
+                      ref={titleRef}
+                      type="text"
+                      value={contractForm.title}
+                      onChange={(e) => handleInputChange('title', e.target.value)}
+                      placeholder="계약 제목을 입력하세요"
+                      style={styles.fullWidthInput(isEditable)}
+                      disabled={!isEditable}
+                    />
+                  </td>
+                </tr>
+
+                <tr onClick={() => contentRef.current?.focus()} style={styles.clickableRow}>
+                  <td colSpan={2}>
+                    <textarea
+                      ref={contentRef}
+                      value={contractForm.content}
+                      onChange={(e) => handleInputChange('content', e.target.value)}
+                      placeholder="계약 내용을 입력하세요"
+                      style={styles.fullWidthTextarea(isEditable)}
+                      disabled={!isEditable}
+                    />
+                  </td>
+                </tr>
+
+                <tr onClick={() => signatureRef.current?.focus()} style={styles.clickableRow}>
+                  <td colSpan={2}>
+                    <input
+                      ref={signatureRef}
                       type="text"
                       value={contractForm.signature}
                       onChange={(e) => handleInputChange('signature', e.target.value)}
-                      style={{ ...inputStyle, height: '25px', backgroundColor: '#f9f9f9' }}
+                      placeholder="서명자 이름을 입력하세요"
+                      style={styles.fullWidthInput(isEditable)}
                       disabled={!isEditable}
                     />
-                </div>
-              </div>
-
-              {/* 오른쪽: 견적서 정보 */}
-              <div style={{ width: '90%', margin: "0 auto", flex: '1', display: 'flex', flexDirection: 'column'}}>
-                <div>
-                  <label style={{ ...labelStyle, textAlign: 'left', display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>견적서 정보</label>
-                  <div 
-                      style={{ 
-                        ...inputStyle, 
-                        height: '425px', 
-                        overflowY: 'auto',
-                        whiteSpace: 'pre-line',
-                        backgroundColor: '#f9f9f9',
-                        fontSize: '11px',
-                        width: '100%', margin: "0 auto",
-                      }}
-                  >
-                    {isLoading
-                    ? '견적서 정보 로딩 중...'
-                    : contract?.estimate || '견적서 정보 없음'}
-                  </div>
-                </div>
-              </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             </div>
+          </div>
+
             
-                {/* 버튼 영역 */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '20px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  display: 'flex',
-                  gap: '20px',
-                }}>
-                  <button
-                      type="submit"
-                      style={{
-                        ...buttonStyle,
-                        backgroundColor: isSaveEnabled ? '#6f47c5' : '#cccccc',
-                        cursor: isSaveEnabled ? 'pointer' : 'not-allowed'
-                      }}
-                      disabled={!isSaveEnabled}
-                    >
-                      저장
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleEdit}
-                    style={{
-                      ...buttonStyle,
-                      backgroundColor: !isEditable ? '#6f47c5' : '#cccccc',
-                      cursor: !isEditable ? 'pointer' : 'not-allowed'
-                    }}
-                    disabled={isEditable}
-                  >
-                    수정
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handlePrint}
-                    style={{
-                      ...buttonStyle,
-                      backgroundColor: '#b794ff'
-                    }}
-                  >
-                    출력
-                  </button>
-                </div>
-          </form>
+            {/* 버튼 영역 */}
+            <div style={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '20px',
+            }}>
+              <button
+                  type="submit"
+                  style={{
+                    ...buttonStyle,
+                    backgroundColor: isSaveEnabled ? '#6f47c5' : '#cccccc',
+                    cursor: isSaveEnabled ? 'pointer' : 'not-allowed'
+                  }}
+                  disabled={!isSaveEnabled}
+                >
+                  저장
+              </button>
+              <button
+                type="button"
+                onClick={handleEdit}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: !isEditable ? '#6f47c5' : '#cccccc',
+                  cursor: !isEditable ? 'pointer' : 'not-allowed'
+                }}
+                disabled={isEditable}
+              >
+                수정
+              </button>
+              <button
+                type="button"
+                onClick={handlePrint}
+                style={{
+                  ...buttonStyle,
+                  backgroundColor: '#b794ff'
+                }}
+              >
+                출력
+              </button>
+            </div>
+            </div>
+        </form>
         )}
         {currentPage === 4 && contract && (
           <>
+          <div style={{ maxWidth: '1300px', height: 'calc(100vh - 220px)', margin: '0 auto', overflow: 'auto' }}>
             <h2 style={sectionTitleStyle}>계약 상세 정보</h2>
-            <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', marginTop: '20px' }}>
+            <div style={{ display: 'flex', gap: '40px', height: '550px', alignItems: 'flex-start', marginTop: '20px', justifyContent: 'center' }}>
               {/* 왼쪽: 계약 정보 테이블 */}
-              <table style={{ height: '500px', width: '60%', borderCollapse: 'collapse' }}>
+              <div style={{ flex: 1, maxWidth: '300px', height: '100%', overflow: 'auto' }}>
+              <h4 style={{ color: '#6f47c5', fontWeight: 'bold' }}>계약 정보</h4>
+              <table style={{ width: '100%', height: '80%', borderCollapse: 'collapse', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '8px' }}>
                 <tbody>
                   <tr>
                     <td style={cellHeaderStyle}>계약 ID</td>
                     <td style={cellBodyStyle}>{contract?.id}</td>
                   </tr>
                   <tr>
-                    <td style={cellHeaderStyle}>회사</td>
+                    <td style={cellHeaderStyle}>회사명</td>
                     <td style={cellBodyStyle}>{contract?.company_name}</td>
+                  </tr>
+                  <tr>
+                    <td style={cellHeaderStyle}>계약 ID</td>
+                    <td style={cellBodyStyle}>{contract?.id}</td>
                   </tr>
                   <tr>
                     <td style={cellHeaderStyle}>상품명</td>
@@ -441,12 +470,32 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
                     <td style={cellBodyStyle}>{contract?.inbound_quantity}</td>
                   </tr>
                   <tr>
-                    <td style={cellHeaderStyle}>창고위치</td>
-                    <td style={cellBodyStyle}>{contract?.warehouse_location}</td>
+                    <td style={cellHeaderStyle}>창고명</td>
+                    <td style={cellBodyStyle}>{selectedRowData?.warehouse_location || 'N/A'}</td>
                   </tr>
                   <tr>
                     <td style={cellHeaderStyle}>보관창고</td>
                     <td style={cellBodyStyle}>{contract?.warehouse_type}</td>
+                  </tr>
+                  <tr>
+                    <td style={cellHeaderStyle}>창고위치</td>
+                    <td style={cellBodyStyle}>{selectedRowData?.warehouse_num || 'N/A'}</td>
+                  </tr>
+                  <tr>
+                    <td style={cellHeaderStyle}>입고예정일</td>
+                    <td style={cellBodyStyle}>
+                    {contract?.subscription_inbound_date
+                      ? new Date(contract.subscription_inbound_date).toISOString().slice(0, 10)
+                      : ''}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={cellHeaderStyle}>출고예정일</td>
+                    <td style={cellBodyStyle}>
+                    {contract?.outbound_date
+                      ? new Date(contract.outbound_date).toISOString().slice(0, 10)
+                      : ''}
+                    </td>
                   </tr>
                   <tr>
                     <td style={cellHeaderStyle}>계약 날짜</td>
@@ -454,17 +503,19 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
                   </tr>
                 </tbody>
               </table>
+            </div>
 
+            <div style={{ flex: 1, maxWidth: '300px',height: '100%', overflow: 'auto' }}>
+            <h4 style={{ color: '#6f47c5', fontWeight: 'bold', marginBottom: '10px' }}>바코드</h4>
               {/* 오른쪽: 바코드 이미지 */}
               {barcodeUrl && (
                 <div style={{
-                  height: '460px',
-                  width: '35%',
+                  height: '73%',
                   textAlign: 'center',
                   border: '1px solid #eee',
                   padding: '20px',
-                  borderRadius: '8px',
-                  backgroundColor: '#fafafa'
+                  marginTop: '20px',
+                  backgroundColor: '#fafafa',
                 }}>
                   <img 
                     src={barcodeUrl} 
@@ -477,56 +528,102 @@ function Min_contract_state_detail({ contract, isOpen, onClose }) {
                   />
                 </div>
               )}
-            </div>
+          </div>
+        </div>
 
-
-            {/* 버튼 영역 */}
-            <div style={{
-              position: 'absolute',
-              bottom: '20px',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: 'flex',
-              gap: '20px',
-            }}>
-              <button
-                onClick={handlePrint}
-                style={{
-                  ...buttonStyle,
-                  backgroundColor: '#b794ff'
-                }}
-              >
-                출력
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+        {/* 버튼 영역 */}
+        <div style={{
+          position: 'absolute',
+          bottom: '20px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          display: 'flex',
+          gap: '20px',
+        }}>
+          <button
+            onClick={handlePrint}
+            style={{
+              ...buttonStyle,
+              backgroundColor: '#b794ff'
+            }}
+          >
+            출력
+          </button>
+        </div>
+        </div>
+        </>
+      )}
     </div>
+  </div>
   );
 }
 
 const cellHeaderStyle = {
   border: '1px solid #e0dff3',
-  padding: '12px 16px',
+  padding: '10px 14px',
   fontWeight: 600,
   backgroundColor: '#f4f1fb',
   color: '#5a3ea1',
   width: '35%',
-  fontSize: '14px',
+  fontSize: '13px',
   textAlign: 'left',
-  borderRadius: '8px 0 0 8px',
 };
 
 const cellBodyStyle = {
   border: '1px solid #e0dff3',
-  padding: '12px 16px',
+  padding: '10px 14px',
   backgroundColor: '#ffffff',
-  fontSize: '14px',
+  fontSize: '12px',
   color: '#333',
   textAlign: 'left',
-  borderRadius: '0 8px 8px 0',
 };
 
 
 export default Min_contract_state_detail;
+
+
+// 🔽 컴포넌트 위쪽 또는 파일 맨 아래에 정의
+const styles = {
+  fullWidthInput: (isEditable) => ({
+    width: '100%',
+    padding: '16px',
+    border: 'none',
+    backgroundColor: isEditable ? '#fff' : '#f3f3f3',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    borderRadius: '6px',
+    transition: 'all 0.2s ease-in-out',
+    boxShadow: isEditable ? 'inset 0 0 0 1px #c1b2e0' : 'none'
+  }),
+  fullWidthTextarea: (isEditable) => ({
+    width: '100%',
+    height: '300px',
+    padding: '16px',
+    border: 'none',
+    resize: 'none',
+    backgroundColor: isEditable ? '#fff' : '#f3f3f3',
+    fontSize: '15px',
+    outline: 'none',
+    boxSizing: 'border-box',
+    borderRadius: '6px',
+    transition: 'all 0.2s ease-in-out',
+    boxShadow: isEditable ? 'inset 0 0 0 1px #c1b2e0' : 'none'
+  }),
+  table: {
+    width: '100%',
+    tableLayout: 'fixed', // ✅ 고정 레이아웃
+    backgroundColor: '#fff',
+    borderCollapse: 'collapse',
+    wordBreak: 'break-word' // ✅ 긴 텍스트도 줄 바꿈됨
+  },
+  clickableRow: {
+    cursor: 'pointer',
+    borderBottom: '1px solid #eee'
+  },
+  wrapper: {
+    flex: 1,
+    width: '100%',
+    overflowX: 'hidden' // ✅ X축 스크롤 제거
+  }
+};

@@ -63,11 +63,11 @@ const Min_state = () => {
   // 상태 업데이트 핸들러
   const handleStatusUpdate = async (newStatus) => {
     if (!selectedRowData) return;
-
+    const updatedRow = { ...selectedRowData, inbound_status: newStatus };
+    console.log("업데이트 대상 ID:", selectedRowData.id);
+    console.log("업데이트 데이터:", updatedRow);
     try {
-      const updatedRow = { ...selectedRowData, inbound_status: newStatus };
       await axios.put(`${API_BASE_URL}/inbound-status-detail/${selectedRowData.id}`, updatedRow);
-
       alert(`상태가 '${newStatus}'(으)로 변경되었습니다.`);
       fetchTableData(); 
       setIsModalOpen(false); // 모달 닫기

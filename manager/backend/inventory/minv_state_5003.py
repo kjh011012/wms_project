@@ -2,20 +2,24 @@ from flask import Flask, jsonify, request, send_from_directory
 import os
 import pandas as pd
 from flask_cors import CORS
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from config import SECRET_KEY, DB_CONFIG
+import jwt
 
 app = Flask(__name__)
-CORS(app, resources={
+CORS(app, supports_credentials=True, resources={
     r"/*": {
         "origins": [
             "http://34.64.211.3:3000",
+            "http://34.64.211.3:3003",
             "http://34.64.211.3:4000",
             "http://34.64.211.3:4001",
             "http://34.64.211.3:4002",  
             "http://34.64.211.3:5003"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True  # 쿠키 전송을 허용
+        "allow_headers": ["Content-Type", "Authorization"]
     }
 })
 
@@ -27,7 +31,23 @@ DB_CONFIG = {
     "database": "backend"
 }
 
-
+@app.route("/api/inventory/protected", methods=["GET"])
+def protected():
+    token = request.cookies.get("accessToken")
+    if not token:
+        return jsonify({"error": "Access token missing"}), 401
+    try:
+        decoded = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return jsonify({
+            "success": True,
+            "email": decoded.get("sub"),
+            "role": decoded.get("role")})
+    except jwt.ExpiredSignatureError:
+        return jsonify({"error": "Access token expired"}), 401
+    except jwt.InvalidTokenError as e:
+        print(f"❌ Invalid JWT: {str(e)}")  # 디버깅에 유용
+        return jsonify({"error": "Invalid token"}), 401
+    
 def load_data_from_db():
     """
     MariaDB에서 데이터 로드
@@ -153,7 +173,7 @@ def serve_images(filename):
     """
     서버의 images 디렉토리에서 파일 제공
     """
-    image_dir = os.path.join(os.getcwd(), 'images')
+    image_dir = '/home/wms/work/manager/backend/inventory/images'
     file_path = os.path.join(image_dir, filename)
 
     # 파일이 존재하는지 확인
@@ -162,6 +182,7 @@ def serve_images(filename):
         return jsonify({"error": "Image not found"}), 404
 
     return send_from_directory(image_dir, filename)
+
 
 
 if __name__ == '__main__':

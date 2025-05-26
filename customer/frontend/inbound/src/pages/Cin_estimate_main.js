@@ -1,11 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { axios5010 } from '../api/axios';
-import axios from 'axios';
-import { AgGridReact } from "ag-grid-react";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 import Cin_contract_state from './Cin_contract_detail';
-/*import Cin_estimate_calculator from "./Cin_estimate_calculator";*/
 
 const API_BASE_URL = "http://34.64.211.3:5011";
 const API_DASHBOARD_BASE_URL = "http://34.64.211.3:5010";
@@ -27,13 +24,11 @@ const CustomerEstimateForm = () => {
 
   const [quoteResult, setQuoteResult] = useState(null);
   const [tableData, setTableData] = useState([]);
-  const [selectedRows, setSelectedRows] = useState([]);
-  const [modalOpen, setModalOpen] = useState(false);
-
   const [gridReady, setGridReady] = useState(false);
-
   const [selectedContract, setSelectedContract] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [sortType, setSortType] = useState("latest"); // 기본은 최근순  
 
   const handleItemClick = (item) => {
     setFormData({
@@ -199,17 +194,28 @@ const CustomerEstimateForm = () => {
     { headerName: "출고", field: "outbound_date", sortable: true, filter: true, resizable: true },
   ];
 
-  // 정렬 함수 추가
-  const handleSortChange = (sortType) => {
-    let sorted = [...tableData];
-    if (sortType === "latest") {
-      sorted.sort((a, b) => new Date(b.subscription_inbound_date) - new Date(a.subscription_inbound_date));
-    } else if (sortType === "oldest") {
-      sorted.sort((a, b) => new Date(a.subscription_inbound_date) - new Date(b.subscription_inbound_date));
-    } else if (sortType === "name") {
-      sorted.sort((a, b) => a.product_name.localeCompare(b.product_name));
+  const getFilteredAndSortedData = () => {
+    let filteredData = [...tableData];
+  
+    // 🔍 검색 적용
+    if (searchText.trim() !== "") {
+      const lowerSearch = searchText.toLowerCase();
+      filteredData = filteredData.filter(item =>
+        (item.product_name?.toLowerCase().includes(lowerSearch) ||
+         item.category?.toLowerCase().includes(lowerSearch))
+      );
     }
-    setTableData(sorted);
+  
+    // 🧹 정렬 적용
+    if (sortType === "latest") {
+      filteredData.sort((a, b) => new Date(a.id) - new Date(b.id));
+    } else if (sortType === "oldest") {
+      filteredData.sort((a, b) => new Date(b.id) - new Date(a.id));
+    } else if (sortType === "name") {
+      filteredData.sort((a, b) => a.product_name.localeCompare(b.product_name));
+    }
+  
+    return filteredData;
   };
 
 
@@ -217,12 +223,10 @@ const CustomerEstimateForm = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-
   const startIdx = (currentPage - 1) * itemsPerPage;
   const endIdx = startIdx + itemsPerPage;
-  const currentItems = tableData.slice(startIdx, endIdx);
-  const totalPages = Math.ceil(tableData.length / itemsPerPage);
-
+  const currentItems = getFilteredAndSortedData().slice(startIdx, endIdx);
+  const totalPages = Math.ceil(getFilteredAndSortedData().length / itemsPerPage);
 
 
   return (
@@ -265,23 +269,41 @@ const CustomerEstimateForm = () => {
               )}
               </div>
             ))}
-            <button
-              onClick={handleSave}
-              style={styles.buttonPrimary}
-              onMouseEnter={(e) => (e.target.style.background = styles.buttonPrimaryHover.background)}
-              onMouseLeave={(e) => (e.target.style.background = styles.buttonPrimary.background)}
-            >
-              견적서 보내기
-            </button>
           </div>
+          <button
+            onClick={handleSave}
+            style={styles.buttonPrimary}
+            onMouseEnter={(e) => (e.target.style.background = styles.buttonPrimaryHover.background)}
+            onMouseLeave={(e) => (e.target.style.background = styles.buttonPrimary.background)}
+          >
+            견적서 보내기
+          </button>
         </div>
 
         <div style={styles.contentColumnLarge}>
           <h2 style={styles.sectionTitle}>최근 견적 데이터</h2>
 
           {/* 🔽 정렬/필터 옵션 영역 */}
-
-          <div className="ag-theme-alpine" style={styles.tableContainer}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "10px" }}>
+            <input
+              type="text"
+              placeholder="상품명, 카테고리 검색"
+              value={searchText}
+              onChange={(e) => setSearchText(e.target.value)}
+              style={styles.filterInput}
+            />
+            <select
+              value={sortType}
+              onChange={(e) => setSortType(e.target.value)}
+              style={styles.sortSelect}
+            >
+              <option value="latest">최근 등록순</option>
+              <option value="oldest">과거 등록순</option>
+              <option value="name">상품명순</option>
+            </select>
+          </div>
+          {/* 테이블 영역 */}
+          <div style={styles.tableContainer}>
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -291,23 +313,28 @@ const CustomerEstimateForm = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentItems.map((item, index) => (
-                  <tr key={index} style={styles.row} onClick={() => handleItemClick(item)}>
-                    {columnDefs.map((col, colIdx) => (
-                      <td key={colIdx} style={styles.td}>{item[col.field]}</td>
-                    ))}
-                  </tr>
-                ))}
+              {currentItems.map((item, index) => (
+                <tr key={index} style={styles.row} onClick={() => handleItemClick(item)}>
+                  {columnDefs.map((col, colIdx) => (
+                    <td key={colIdx} style={styles.td}>
+                      {typeof item[col.field] === 'object' && item[col.field] !== null
+                        ? JSON.stringify(item[col.field])
+                        : item[col.field]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
               </tbody>
             </table>
+          </div>
             
-            {selectedContract && (
-            <Cin_contract_state
-              contract={selectedContract}
-              isOpen={isModalOpen}
-              onClose={() => setIsModalOpen(false)}
-              onContractUpdate={fetchTableData}  // 필요 시 갱신
-            />
+          {selectedContract && (
+          <Cin_contract_state
+            contract={selectedContract}
+            isOpen={isModalOpen}
+            onClose={() => setIsModalOpen(false)}
+            onContractUpdate={fetchTableData}  // 필요 시 갱신
+          />
           )}
           <div style={styles.pagination}>
             <button
@@ -329,7 +356,6 @@ const CustomerEstimateForm = () => {
         </div>
       </div>
     </div>
-  </div>
   );
 };
 
@@ -381,7 +407,7 @@ const styles = {
     border: "none",
     borderRadius: "5px",
     cursor: "pointer",
-    marginBottom: "20px",
+    marginTop: '30px',
     transition: "background 0.3s ease",
   },
   buttonPrimaryHover: {
@@ -392,22 +418,11 @@ const styles = {
     marginTop: "20px",
     backgroundColor: "#ffffff",
     borderRadius: "8px",
-  },
-  selectBox: {
-    padding: "5px 10px",
-    borderRadius: "5px",
-    fontSize: "11px",
-    cursor: "pointer",
-    border: "2px solid #6f47c5",             // 테두리 보라색
-    backgroundColor: "white",                // 배경 흰색
-    WebkitAppearance: "none",                // 사파리용
-    MozAppearance: "none",                   // 파이어폭스용
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 10px center",
-    backgroundSize: "12px 8px",
+    overflowX: "hidden",
+    overflowY: "hidden",
   },
   table: {
-    height: "430px",
+    height: "",
     width: "100%",
     borderCollapse: "collapse",
     marginBottom: "10px",
@@ -446,6 +461,33 @@ const styles = {
     fontWeight: "bold",
     fontSize: "14px",
     transition: "all 0.2s ease-in-out",
+  },
+  filterSortContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
+    gap: "10px",
+  },
+  filterInput: {
+    flex: 1,
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    outline: "none",
+    transition: "border-color 0.3s ease",
+    marginRight: "10px",
+  },
+  sortSelect: {
+    padding: "5px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    cursor: "pointer",
+    transition: "background 0.3s ease",
   },
 };
 

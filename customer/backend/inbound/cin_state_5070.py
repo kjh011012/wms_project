@@ -88,16 +88,17 @@ def serve_images(filename):
     """
     서버의 images 디렉토리에서 파일 제공
     """
-    image_dir = os.path.join(os.getcwd(), 'images')
-    file_path = os.path.join(image_dir, filename)
+    base_dir = '/home/wms/work/manager/backend/inventory/images'
+    file_path = os.path.join(base_dir, filename)
 
     # 파일이 존재하는지 확인
     if not os.path.exists(file_path):
-        print(f"Image not found: {filename}")  # 디버깅 로그
+        print(f"Image not found: {file_path}")  # 디버깅 로그
         return jsonify({"error": "Image not found"}), 404
 
-    return send_from_directory(image_dir, filename)
-
+    directory = os.path.dirname(file_path)
+    file_name = os.path.basename(file_path)
+    return send_from_directory(directory, file_name)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5070, debug=True)

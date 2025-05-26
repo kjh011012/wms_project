@@ -10,8 +10,8 @@ const API_DASHBOARD_BASE_URL = "http://34.64.211.3:5010";
 
 const Customeroutboundrequest = () => {
   const [outboundItems, setOutboundItems] = useState([]);
-  const [searchText, setSearchText] = useState("");
-  const [tableData, setTableData] = useState([]);
+  const [searchText, setSearchText] = useState('');
+  const [sortType, setSortType] = useState('latest');
   const [selectedRowData, setSelectedRowData] = useState(null);
   const [loading, setLoading] = useState(false);
   const detailRef = useRef(null); // 상세 내용 영역 참조
@@ -28,7 +28,7 @@ const Customeroutboundrequest = () => {
       console.log("🔍 전체 아이템:", allItems);
       // ✅ 출고 상태 필터링
       const filtered = allItems.filter(item =>
-        ['입고완료', '출고요청', '출고완료'].includes(item.outbound_status)
+        ['출고 준비중', '출고 준비 완료', '배차 완료', '출고완료'].includes(item.outbound_status)
       );
       // ✅ 날짜 형식 통일
       const formatDate = (date) =>
@@ -69,12 +69,53 @@ const Customeroutboundrequest = () => {
 
   const [activeTab, setActiveTab] = useState('출고 준비중');
   const statusTabs = ['출고 준비중', '출고 준비 완료', '배차 완료', '출고완료'];
+  const getFilteredAndSortedData = () => {
+    let filtered = [...outboundItems];
+    // 탭 필터링 (출고준비중/준비완료/배차완료/출고완료 )
+    if (activeTab) {
+      filtered = filtered.filter(item => item.outbound_status === activeTab);
+    }
+    // 검색 적용 (상품명, 상품번호)
+    if (searchText.trim() !== "") {
+      filtered = filtered.filter(item =>
+        (item.product_name?.toLowerCase().includes(searchText.toLowerCase())) ||
+        (item.product_number?.toLowerCase().includes(searchText.toLowerCase()))
+      );
+    }
+    // 정렬 적용 (날짜순, 상품명순)
+    if (sortType === "latest") {
+      filtered.sort((a, b) => new Date(b.id || 0) - new Date(a.id || 0));
+    } else if (sortType === "oldest") {
+      filtered.sort((a, b) => new Date(a.id || 0) - new Date(b.id || 0));
+    } else if (sortType === "product") {
+      filtered.sort((a, b) => a.product_name.localeCompare(b.product_name));
+    }
+    return filtered;
+  };
 
   return (
     <div style={styles.container}>
       <div style={styles.content}>
         <h2 style={styles.sectionTitle}>출고 현황</h2>
-
+        {/* 🔎 검색 + 정렬 */}
+        <div style={styles.searchFilterContainer}>
+          <input
+            type="text"
+            placeholder="상품명 또는 상품번호 검색"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={styles.filterInput}
+          />
+          <select
+            value={sortType}
+            onChange={(e) => setSortType(e.target.value)}
+            style={styles.sortSelect}
+          >
+            <option value="latest">최근 등록순</option>
+            <option value="oldest">과거 등록순</option>
+            <option value="name">상품명순</option>
+          </select>
+        </div>
         {/* 🔽 탭 버튼 UI */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
           {statusTabs.map(status => (
@@ -100,18 +141,18 @@ const Customeroutboundrequest = () => {
         <div 
           className="ag-theme-alpine" 
           style={{
-            height: "calc(100vh - 200px)",
+            height: "calc(100vh - 300px)",
             width: "100%",
             minWidth: "800px",
             minHeight: "400px"
           }}
         >
           <AgGridReact
-            rowData={outboundItems.filter(item => item.outbound_status === activeTab)}
+            rowData={getFilteredAndSortedData()}
             columnDefs={columnDefs}
             onRowClicked={handleRowClick}
             pagination={true}
-            paginationPageSize={14}
+            paginationPageSize={12}
             defaultColDef={{
               sortable: true,
               filter: true,
@@ -216,7 +257,7 @@ const styles = {
   },
   tableContainer: {
     width: "100%",
-    height: "600px"
+    height: "500px"
   },
   detailContainer: {
     marginTop: "20px",
@@ -303,6 +344,30 @@ const styles = {
   infoTableTd: {
     padding: "8px",
     backgroundColor: "#fafafa",
+  },
+  searchFilterContainer: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "15px",
+    gap: "10px",
+  },
+  filterInput: {
+    flex: 1,
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    outline: "none",
+  },
+  sortSelect: {
+    padding: "10px",
+    borderRadius: "8px",
+    border: "1px solid #c5b3f1",
+    color: "#4a2e91",
+    fontSize: "14px",
+    cursor: "pointer",
   },
 };
 

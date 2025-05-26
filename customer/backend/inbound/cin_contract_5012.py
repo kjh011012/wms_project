@@ -44,7 +44,7 @@ def load_data_from_db(query=None):
         if query:
             search_term = f"%{query}%"
             sql_query += """ WHERE CONCAT_WS(' ', 
-                id, company_name, product_name, warehouse_location, 
+                id, company_name, contact_person, phone_number, product_name, warehouse_location, 
                 warehouse_type, contract_date) LIKE %s"""
             print(f"실행될 쿼리: {sql_query}")
             df = pd.read_sql(sql_query, connection, params=(search_term,))

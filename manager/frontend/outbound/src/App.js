@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import Base from "./components/Base";
 import Mout_state from "./pages/Mout_state";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ChatbotWrapper from "./pages/ChatbotWrapper";
 
 const App = () => {
   return (
@@ -15,6 +16,7 @@ const App = () => {
               <Mout_state />
             </ProtectedRoute>} />
         </Routes>
+        {<ChatbotWrapper />}
       </Base>
 
   );

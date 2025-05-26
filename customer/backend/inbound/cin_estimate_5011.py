@@ -17,7 +17,6 @@ CORS(app, resources={
             "http://34.64.211.3:4000",
             "http://34.64.211.3:4001",
             "http://34.64.211.3:4002",  
-            "http://34.64.211.3:5003"
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type", "Authorization"],

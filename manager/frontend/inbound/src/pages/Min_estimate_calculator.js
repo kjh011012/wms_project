@@ -7,7 +7,7 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
   const [palletCount, setPalletCount] = useState(0);
   const [storageType, setStorageType] = useState("");
   const [storageDays, setStorageDays] = useState(0);
-  const [totalCost, setTotalCost] = useState(0);
+  const [total, setTotalCost] = useState(0);
   const [formData, setFormData] = useState(selectedRowData || {});
   const [activeFields, setActiveFields] = useState({}); // 필드 활성화 상태
   const [isCostCalculated, setIsCostCalculated] = useState(false); // 비용 계산 여부
@@ -63,11 +63,12 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
     if (formData.subscription_inbound_date && formData.outbound_date) {
       const inboundDate = new Date(formData.subscription_inbound_date);
       const outboundDate = new Date(formData.outbound_date);
-      const duration =
-        outboundDate > inboundDate
-          ? Math.ceil((outboundDate - inboundDate) / (1000 * 60 * 60 * 24))
-          : 0;
-      setStorageDays(duration); // 자동으로 계산된 일수를 업데이트
+      if (!isNaN(inboundDate) && !isNaN(outboundDate)) {
+        const duration = Math.max(0, Math.ceil((outboundDate - inboundDate) / (1000 * 60 * 60 * 24)));
+        setStorageDays(duration);
+      } else {
+        setStorageDays(0); // 날짜 변환 실패하면 0으로 초기화
+      }
     }
   }, [formData.subscription_inbound_date, formData.outbound_date]);
 
@@ -81,7 +82,7 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
       return acc;
     }, {});
 
-    updatedData.total_cost = totalCost; // 총 비용
+    updatedData.total_cost = total; // 총 비용
     updatedData.storage_duration = storageDays; // 보관 일수 자동 계산
 
     onUpdate(updatedData); // 부모 컴포넌트로 데이터 전달
@@ -97,137 +98,143 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
     return `${year}-${month}-${day}`;
   };
 
+  const locations = ['보관소 A', '보관소 B', '보관소 C', '보관소 D', '보관소 E', '보관소 F', '보관소 G', '보관소 H', '보관소 I']
+
   return (
     <div
       style={{
         width: "100%",
-        height: "700px",
+        height: "550px",
         background: "white",
         borderRadius: "10px",
-        overflowY: "hidden", // ✅ 스크롤 막기
-        overflowX: "hidden", // ✅ 스크롤 막기
+        overflow: "hidden", // ✅ 스크롤 막기
         display: "flex",
         flexDirection: "column", // 위아래 정렬
       }}
     >
-      {/* 왼쪽: 입력 테이블 */}
-      <div style={{ display: 'flex', gap: '30px', marginTop: '20px' }}>
-      {/* 왼쪽: 고객 정보 */}
-      <div style={{ flex: 1 }}>
-      <h3 style={{ ...styles.sectionTitle, color: "#6f47c5" }}>고객 정보</h3>
-      <table style={styles.table}>
-      <thead>
-        <tr style={styles.tableHeaderRow}>
-          <th style={styles.tableHeader}>항목</th>
-          <th style={styles.tableHeader}>고객 입력값</th>
-          <th style={styles.tableHeader}>수정</th>
-        </tr>
-      </thead>
-      <tbody>
-        {[
-          { label: "업체명", name: "company_name" },
-          { label: "상품명", name: "product_name" },
-          { label: "수량", name: "inbound_quantity" },
-          { label: "무게", name: "weight" },
-          { label: "상태", name: "warehouse_type" },
-          { label: "입고일", name: "subscription_inbound_date", type: "date" },
-          { label: "출고일", name: "outbound_date", type: "date" },
-        ].map(({ label, name, type = "text" }) => (
-          <tr key={name}>
-            <td style={styles.tableCell}>{label}</td>
-            <td style={styles.tableCell}>
-              <input
-                type={type}
-                name={name}
-                value={
-                  type === "date"
-                    ? formatDateForInput(formData[name])
-                    : formData[name] || ""
-                }
-                onChange={handleInputChange}
-                disabled={!activeFields[name]}
-                style={styles.input}
-              />
-            </td>
-            <td style={styles.tableCell}>
-              <input
-                type="checkbox"
-                name={name}
-                checked={!!activeFields[name]}
-                onChange={handleCheckboxChange}
-              />
-            </td>
+      <div style={{ display: 'flex', flex: 1, gap: '30px', overflow: 'hidden' }}>
+        {/* 왼쪽: 고객 정보 */}
+        <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", height: '400px' }}>
+        <h4 style={{ color: '#6f47c5', fontWeight: 'bold', marginBottom: '10px' }}>견적서 정보</h4>
+        <table style={{ ...styles.table, height: "50%" }}>
+        <thead>
+          <tr style={styles.tableHeaderRow}>
+            <th style={{ ...styles.tableHeader, width: "25%" }}>항목</th>
+            <th style={{ ...styles.tableHeader, width: "60%" }}>고객 입력값</th>
+            <th style={{ ...styles.tableHeader, width: "15%" }}>수정</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
-  </div>
-
-  {/* 오른쪽: 실견적 입력 */}
-  <div style={{ flex: 1 }}>
-    <h3 style={{ ...styles.sectionTitle, color: "#6f47c5" }}>실견적 입력</h3>
-    <table style={styles.table}>
-      <thead>
-        <tr style={styles.tableHeaderRow}>
-          <th style={styles.tableHeader}>항목</th>
-          <th style={styles.tableHeader}>값을 입력해주세요</th>
-        </tr>
-      </thead>
-      <tbody>
-        {[
-          { label: "제품 번호", value: productNum, onChange: setProductNum, type: "text" },
-          { label: "창고 위치", value: warehouseLocation, onChange: setWarehouseLocation, type: "text" },
-          {
-            label: "팔레트 종류",
-            value: palletSize,
-            onChange: setPalletSize,
-            type: "select",
-            options: ["선택", "S", "M", "L"],
-          },
-          { label: "팔레트 개수", value: palletCount, onChange: setPalletCount, type: "number" },
-          {
-            label: "보관 타입",
-            value: storageType,
-            onChange: setStorageType,
-            type: "select",
-            options: ["선택", "상온", "냉장", "냉동"],
-          },
-        ].map(({ label, value, onChange, type, options }, idx) => (
-          <tr key={idx}>
-            <td style={styles.tableCell}>{label}</td>
-            <td style={styles.tableCell}>
-              {type === "select" ? (
-                <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.input}>
-                  {options.map((opt, i) => (
-                    <option key={i} value={opt === "선택해주세요" ? "" : opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              ) : (
+        </thead>
+        <tbody>
+          {[
+            { label: "업체명", name: "company_name" },
+            { label: "상품명", name: "product_name" },
+            { label: "수량", name: "inbound_quantity" },
+            { label: "무게", name: "weight" },
+            { label: "상태", name: "warehouse_type" },
+            { label: "입고일", name: "subscription_inbound_date", type: "date" },
+            { label: "출고일", name: "outbound_date", type: "date" },
+          ].map(({ label, name, type = "text" }) => (
+            <tr key={name}>
+              <td style={styles.tableCell}>{label}</td>
+              <td style={styles.tableCell}>
                 <input
                   type={type}
-                  value={type === "number" ? Number(value) : value}
-                  onChange={(e) => onChange(type === "number" ? Number(e.target.value) : e.target.value)}
+                  name={name}
+                  value={
+                    type === "date"
+                      ? formatDateForInput(formData[name])
+                      : formData[name] || ""
+                  }
+                  onChange={handleInputChange}
+                  disabled={!activeFields[name]}
                   style={styles.input}
                 />
-              )}
-            </td>
-          </tr>
-        ))}
+              </td>
+              <td style={styles.tableCell}>
+                <input
+                  type="checkbox"
+                  name={name}
+                  checked={!!activeFields[name]}
+                  onChange={handleCheckboxChange}
+                />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
-      
     </div>
+
+    {/* 오른쪽: 실견적 입력 */}
+    <div style={{ flex: 1, overflow: "hidden", display: "flex", flexDirection: "column", height: '400px' }}>
+    <h4 style={{ color: '#6f47c5', fontWeight: 'bold', marginBottom: '10px' }}>견적서 정보</h4>
+      <table style={{ ...styles.table, height: "70%" }}>
+        <thead>
+          <tr style={styles.tableHeaderRow}>
+            <th style={{ ...styles.tableHeader, width: "40%" }}>항목</th>
+            <th style={{ ...styles.tableHeader, width: "60%" }}>값을 입력해주세요</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            { label: "제품 번호", value: productNum, onChange: setProductNum, type: "text" },
+            {
+              label: "창고 위치",
+              value: warehouseLocation,
+              onChange: setWarehouseLocation,
+              type: "select",
+              options: ["선택", ...locations],
+            },
+            {
+              label: "팔레트 종류",
+              value: palletSize,
+              onChange: setPalletSize,
+              type: "select",
+              options: ["선택", "S", "M", "L"],
+            },
+            { label: "팔레트 개수", value: palletCount, onChange: setPalletCount, type: "number" },
+            {
+              label: "보관 타입",
+              value: storageType,
+              onChange: setStorageType,
+              type: "select",
+              options: ["선택", "상온", "냉장", "냉동"],
+            },
+          ].map(({ label, value, onChange, type, options }, idx) => (
+            <tr key={idx}>
+              <td style={styles.tableCell}>{label}</td>
+              <td style={styles.tableCell}>
+                {type === "select" ? (
+                  <select value={value} onChange={(e) => onChange(e.target.value)} style={styles.input}>
+                    {options.map((opt, i) => (
+                      <option key={i} value={opt === "선택해주세요" ? "" : opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={type}
+                    value={type === "number" ? Number(value) : value}
+                    onChange={(e) => onChange(type === "number" ? Number(e.target.value) : e.target.value)}
+                    style={styles.input}
+                  />
+                )}
+              </td>
+            </tr>
+          ))}
+          </tbody>
+        </table>
+        
+      </div>
     </div>
 
 
     {/* 총 비용 및 버튼 */}
     <div style={styles.resultBox}>
-      <div style={{ marginTop: "10px", textAlign: "center" }}>
+      <div style={{ textAlign: "center" }}>
         보관 일수는 <strong style={{ color: "#6f47c5" }}>{storageDays}일</strong> 입니다.
       </div>
-      <h4 style={styles.resultTitle}>총 예상 비용은 {totalCost.toLocaleString()} 원입니다.</h4>
+      <h4 style={styles.resultTitle}>총 예상 비용은 {total.toLocaleString()} 원입니다.</h4>
     </div>
 
     <div style={styles.buttonRow}>
@@ -240,6 +247,21 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
       <button
         style={styles.sendButton}
         onClick={() => {
+          // 👉 견적서 보내기 누르기 전에 storageDays, totalCost 재계산
+          // 1. storageDays 재계산
+          let days = 0;
+          if (formData.subscription_inbound_date && formData.outbound_date) {
+            const inbound = new Date(formData.subscription_inbound_date);
+            const outbound = new Date(formData.outbound_date);
+            if (!isNaN(inbound) && !isNaN(outbound)) {
+              days = Math.max(0, Math.ceil((outbound - inbound) / (1000 * 60 * 60 * 24)));
+            }
+          }
+          // 2. totalCost 재계산
+          const palletCost = palletPrices[palletSize] || 0;
+          const storageCost = storagePrices[storageType] || 0;
+          const total = (palletCost + storageCost) * palletCount * days;
+          // 3. 최종 저장 데이터
           const updatedData = {
             ...formData,
             product_number: productNum,
@@ -247,8 +269,8 @@ const Min_estimate_calculator = ({ selectedRowData, onUpdate, onClose }) => {
             pallet_size: palletSize,
             pallet_num: palletCount,
             warehouse_type: storageType,
-            storage_duration: storageDays,
-            total_cost: totalCost,
+            storage_duration: days,
+            total_cost: Number(total.toFixed(2)),
           };
           onUpdate(updatedData);
           onClose();
@@ -290,20 +312,22 @@ const styles = {
   buttonRow: {
     display: 'flex',
     gap: '12px',
-    marginTop: '15px',
+    marginBottom: '30px',
     justifyContent: 'space-between',
   },
   table: {
+    height:'400px',
     borderCollapse: "collapse",
-    marginTop: "10px",
     border: "1px solid #6f47c5",
+    tableLayout: "fixed", // ✅ 열 너비 고정
+    width: "100%", // ✅ 전체 채우기
   },
   tableHeaderRow: {
     backgroundColor: "#f5f1fa",
   },
   tableHeader: {
     border: "1px solid #6f47c5",
-    padding: "6px", // ⬅ 줄임
+    padding: "5px", 
     textAlign: "center",
     fontWeight: "bold",
     color: "#6f47c5",
@@ -325,33 +349,23 @@ const styles = {
     border: "none",
     boxSizing: "border-box",
   },
-  resultContainer: {
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    gap: "15px",
-    marginTop: "50px",
-    display: 'flex',
-    justifyContent: 'space-between',
-    flexWrap: 'wrap',
-  },
   calculateButton: {
-    marginTop: "30px",
-    padding: "10px 20px",
+    marginTop: "20px",
+    padding: "8px 12px",
     background: "linear-gradient(to right,rgb(148, 128, 248), #6f47c5)",
     color: "white",
     border: "none",
     borderRadius: "10px",
-    fontSize: "14px",
+    fontSize: "16px",
     fontWeight: "bold",
     cursor: "pointer",
     width: "100%",
     boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
   },
   resultBox: {
-    marginTop: "50px",
+    marginTop:'20px',
     backgroundColor: "#f9f7ff",
-    padding: "20px",
+    padding: "10px",
     borderRadius: "10px",
     width: "100%",
     textAlign: "center",
@@ -368,8 +382,8 @@ const styles = {
     color: "#333",
   },
   sendButton: {
-    marginTop: "30px",
-    padding: "10px 20px",
+    marginTop: "20px",
+    padding: "8px 12px",
     background: "linear-gradient(to right,rgb(129, 127, 133),rgb(84, 84, 85))",
     color: "white",
     border: "none",

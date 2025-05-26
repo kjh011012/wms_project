@@ -80,7 +80,7 @@ def get_outbound_status():
             SELECT id, company_name, product_name, contact_phone, inbound_quantity,
                    warehouse_location, warehouse_type, outbound_status,
                    outbound_date, last_outbound_date
-            FROM OutboundRequestTable
+            FROM MainTable
             WHERE {where_sql}
         """
 

@@ -61,30 +61,34 @@ public class UserController {
     // 회원가입
     @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody SignupRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("이미 존재하는 이메일입니다.");
+        try {
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                return ResponseEntity.badRequest().body("이미 존재하는 이메일입니다.");
+            }
+    
+            User newUser = User.builder()
+                    .email(request.getEmail())
+                    .username(request.getUsername())
+                    .password(passwordEncoder.encode(request.getPassword()))
+                    .phoneNumber(request.getPhoneNumber())
+                    .address(request.getAddress())
+                    .details(request.getDetails())
+                    .role("user")
+                    .build();
+    
+            userRepository.save(newUser);
+    
+            String token = jwtUtil.generateAccessToken(newUser.getEmail(), "user");
+    
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "email", newUser.getEmail(),
+                    "role", newUser.getRole()
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원가입 중 오류가 발생했습니다: " + e.getMessage());
         }
-
-        User newUser = User.builder()
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .phoneNumber(request.getPhoneNumber())
-                .address(request.getAddress())
-                .details(request.getDetails())
-                .role("user")
-                .build();
-
-        userRepository.save(newUser);
-
-        String token = jwtUtil.generateAccessToken(newUser.getEmail(), "user");
-
-        return ResponseEntity.ok(Map.of(
-                "token", token,
-                "email", newUser.getEmail(),
-                "role", newUser.getRole()
-        ));
-    }
+    }    
 
     // 로그아웃
     @PostMapping("/logout")
