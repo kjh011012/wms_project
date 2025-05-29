@@ -6,7 +6,7 @@ from openai import OpenAI
 import re
 
 # OpenAI API 클라이언트 초기화
-client = OpenAI(api_key="sk-svcacct-aWVy4GJUbNSBmAj9LvDr93te7wdTZkP0M0uj1EwjFZYpiYXkzXjE6ckYXZEzeJokT3BlbkFJd15idw0GFs0Gy_zTg-1uN01D0R8YbZM6zQQRh32zSrAs4w6Nbrmwlj2HA0jI18EA")
+client = OpenAI(api_key="키입력")
 
 # =========================
 # 설정
