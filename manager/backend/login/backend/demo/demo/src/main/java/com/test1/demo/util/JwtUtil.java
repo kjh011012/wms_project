@@ -12,7 +12,7 @@ import java.util.Date;
 
 @Component
 public class JwtUtil {
-    private static final String SECRET_KEY = "thisissecretkeyforWMSSystemjwtreactconnectwithspringserverthisissecretkeyforWMSSystemjwtreactconnectwithspringserver";
+    private static final String SECRET_KEY = "jwt토큰 시크릿키 입력";
     private static final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 30; // 30분
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60 * 60 * 24 * 7; // 7일
 
