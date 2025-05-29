@@ -47,10 +47,10 @@ except Exception as e:
 
 # 데이터베이스 연결 정보
 DB_CONFIG = {
-    "host": "localhost",          # MySQL 호스트
-    "user": "wms",                # MySQL 사용자 이름
-    "password": "1234",           # MySQL 비밀번호
-    "database": "backend",        # MySQL 데이터베이스 이름
+    "host": "연결호스트",
+    "user": "사용자이름",
+    "password": "비밀번호",
+    "database": "데이터베이스이름"
 }
 
 # 바코드 디코딩 함수 (문자열 반환)
