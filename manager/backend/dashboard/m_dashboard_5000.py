@@ -15,7 +15,7 @@ import jwt
 app = Flask(__name__)
 
 # OpenAI API 키 설정
-openai.api_key = "sk-svcacct-aWVy4GJUbNSBmAj9LvDr93te7wdTZkP0M0uj1EwjFZYpiYXkzXjE6ckYXZEzeJokT3BlbkFJd15idw0GFs0Gy_zTg-1uN01D0R8YbZM6zQQRh32zSrAs4w6Nbrmwlj2HA0jI18EA"
+openai.api_key = "키입력"
 CORS(app, supports_credentials=True, resources={
     r"/*": {
         "origins": ["http://34.64.211.3:3050", "http://localhost:3050", "http://34.47.73.162:5000"]
