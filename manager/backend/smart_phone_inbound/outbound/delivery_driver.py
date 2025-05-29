@@ -14,7 +14,7 @@ db_config = {
     "charset": "utf8",
 }
 
-openai.api_key = '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' # 또는 직접 키 문자열 입력
+openai.api_key = '키 입력' # 또는 직접 키 문자열 입력
 
 @bp_delivery_driver.route('/api/driver/recommend', methods=['POST'])
 def recommend_driver():
