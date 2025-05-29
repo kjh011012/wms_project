@@ -14,15 +14,15 @@ public class SmsService {
 
     public SmsService() {
         this.messageService = NurigoApp.INSTANCE.initialize(
-                "NCSQLNRUHBWUMPYA",    // 🔁 너의 API Key
-                "PJWXOND3C3XXICBINIAGGPBI41QOQDA4", // 🔁 너의 API Secret
+                "너의 API Key",    // 🔁 너의 API Key
+                "너의 API Secret", // 🔁 너의 API Secret
                 "https://api.coolsms.co.kr"
         );
     }
 
     public void sendSms(String to, String text) {
         Message message = new Message();
-        message.setFrom("01093632926");  // 🔁 등록된 발신 번호
+        message.setFrom("등록된 발신 번호");  // 🔁 등록된 발신 번호
         message.setTo(to);
         message.setText(text);
 
