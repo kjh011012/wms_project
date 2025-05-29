@@ -28,10 +28,10 @@ CORS(app, resources={
 
 # 데이터베이스 연결 정보
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "wms",  # 데이터베이스 사용자 이름
-    "password": "1234",  # 데이터베이스 비밀번호
-    "database": "backend",  # 데이터베이스 이름
+    'host': '연결호스트',
+    'user': '사용자이름',
+    'password': '비밀번호',
+    'database': '데이터베이스이름',
 }
 
 

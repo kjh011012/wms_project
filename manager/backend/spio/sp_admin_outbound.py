@@ -10,10 +10,10 @@ CORS(app, resources={r"/*": {"origins": "*"}})  # 모든 도메인에서의 요�
 
 # 데이터베이스 연결 정보
 DB_CONFIG = {
-    "host": "localhost",          # MySQL 호스트
-    "user": "wms",                # MySQL 사용자 이름
-    "password": "1234",           # MySQL 비밀번호
-    "database": "backend",        # MySQL 데이터베이스 이름
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름", 
+    "password": "데이터베이스 비밀번호",  
+    "database": "데이터베이스 이름", 
 }
 
 # 단일 /barcode-upload 엔드포인트 정의

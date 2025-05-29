@@ -16,11 +16,12 @@ CORS(app, resources={r"/*": {"origins": "http://34.64.211.3:3002"}}, supports_cr
 
 app.register_blueprint(vehicle_bp, url_prefix="/")
 
+# 데이터베이스 연결 정보
 DB_CONFIG = {
-    "host": "localhost",
-    "user": "wms",
-    "password": "1234",
-    "database": "backend",
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름", 
+    "password": "데이터베이스 비밀번호",  
+    "database": "데이터베이스 이름", 
 }
 
 @app.route("/api/outbound/protected", methods=["GET"])

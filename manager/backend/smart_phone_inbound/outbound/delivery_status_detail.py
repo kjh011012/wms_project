@@ -4,12 +4,12 @@ import mysql.connector
 
 bp_delivery_status_detail = Blueprint('delivery_status_detail', __name__)
 
-# ✅ 데이터베이스 설정
+# ✅ DB 설정
 db_config = {
-    "host": "localhost",
-    "user": "wms",
-    "password": "1234",
-    "database": "backend",
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름",
+    "password": "데이터베이스 비밀번호",
+    "database": "데이터베이스 이름",
     "charset": "utf8",
 }
 

@@ -3,11 +3,12 @@ from flask import Flask, Blueprint, request, jsonify
 import mysql.connector
 
 # ✅ DB 설정
+# 데이터베이스 연결 정보
 db_config = {
-    'host': 'localhost',
-    'user': 'wms',
-    'password': '1234',
-    'database': 'backend',
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름", 
+    "password": "데이터베이스 비밀번호",  
+    "database": "데이터베이스 이름", 
 }
 
 # ✅ DB 연결 함수

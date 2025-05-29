@@ -6,11 +6,10 @@ import os
 bp_inbound = Blueprint("inbound", __name__)
 
 db_config = {
-    "host": "localhost",
-    "user": "wms",
-    "password": "1234",
-    "database": "backend",
-    "charset": "utf8",
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름", 
+    "password": "데이터베이스 비밀번호",  
+    "database": "데이터베이스 이름", 
 }
 """
 @bp_inbound.route("/api/product", methods=["GET"])

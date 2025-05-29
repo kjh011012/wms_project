@@ -4,13 +4,13 @@ import mysql.connector
 
 bp_delivery_list = Blueprint('delivery_list', __name__)
 
-# DB 설정 (당연히 본인 서버에 맞게 수정)
+# ✅ DB 설정
 db_config = {
-    'host': 'localhost',
-    'user': 'wms',
-    'password': '1234',
-    'database': 'backend',
-    'charset': 'utf8'
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름",
+    "password": "데이터베이스 비밀번호",
+    "database": "데이터베이스 이름",
+    "charset": "utf8",
 }
 
 # ✅ 배차 신청 리스트 조회

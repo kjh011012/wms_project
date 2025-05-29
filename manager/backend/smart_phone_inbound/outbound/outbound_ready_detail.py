@@ -6,12 +6,13 @@ bp_outbound_ready_detail = Blueprint("outbound_ready_detail", __name__)
 
 # ✅ DB 설정
 db_config = {
-    "host": "localhost",
-    "user": "wms",
-    "password": "1234",
-    "database": "backend",
+    "host": "연결호스트",
+    "user": "데이터베이스 사용자 이름",
+    "password": "데이터베이스 비밀번호",
+    "database": "데이터베이스 이름",
     "charset": "utf8",
 }
+
 # 출고 준비중 단건 상세 조회
 @bp_outbound_ready_detail.route("/api/outbound/ready-detail", methods=["GET"])
 def preparing_detail():
