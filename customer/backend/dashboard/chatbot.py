@@ -8,7 +8,7 @@ import jwt
 from datetime import datetime, timedelta
 from rag_engine import generate_rag_answer
 
-client = OpenAI(api_key='sk-svcacct-aWVy4GJUbNSBmAj9LvDr93te7wdTZkP0M0uj1EwjFZYpiYXkzXjE6ckYXZEzeJokT3BlbkFJd15idw0GFs0Gy_zTg-1uN01D0R8YbZM6zQQRh32zSrAs4w6Nbrmwlj2HA0jI18EA')
+client = OpenAI(api_key='api키 입력')
 SECRET_KEY = "thisissecretkeyforWMSSystemjwtreactconnectwithspringserverthisissecretkeyforWMSSystemjwtreactconnectwithspringserver"
 
 app = Flask(__name__)
